@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f5ef">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="오늘 일본어">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <title>오늘 일본어 · EBS 학습노트</title>
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="masthead">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">あ</span><div><p class="eyebrow">EBS RADIO · STUDY ROOM</p><h1>오늘 일본어<span class="brand-dot">.</span></h1></div></div>
+      <button id="refresh" class="quiet-button" type="button">새로고침 <span aria-hidden="true">↻</span></button>
+    </header>
+    <p class="intro">듣고, 읽고, 오늘의 표현을 남겨요.</p>
+    <div class="workspace">
+      <aside class="library" aria-label="방송 보관함">
+        <div class="section-heading"><h2>방송 보관함</h2><span id="library-count" class="count">—</span></div>
+        <div class="filters" role="group" aria-label="과정 선택">
+          <button type="button" data-course="all" aria-pressed="true">전체</button>
+          <button type="button" data-course="초급일본어" aria-pressed="false">초급</button>
+          <button type="button" data-course="중급일본어" aria-pressed="false">중급</button>
+        </div>
+        <button type="button" id="filters-toggle" class="filters-toggle" aria-expanded="false" aria-controls="search-options">검색·학습노트 필터 <span aria-hidden="true">＋</span></button>
+        <div id="search-options" class="search-options">
+          <label class="search"><span aria-hidden="true">⌕</span><input id="search" type="search" placeholder="날짜 또는 주제 검색" aria-label="날짜 또는 주제 검색"></label>
+          <label class="ready-filter"><input id="ready-only" type="checkbox"> 학습노트 있는 방송만</label>
+        </div>
+        <label class="mobile-select-label" for="episode-select">방송 선택</label>
+        <select id="episode-select" aria-label="방송 선택"></select>
+        <div id="episode-list" class="episode-list"></div>
+        <p class="library-footnote">새 녹음과 학습노트가 자동으로 추가됩니다.</p>
+      </aside>
+      <main id="lesson" aria-live="polite">
+        <div class="empty-state" id="initial-state"><p class="eyebrow">YOUR DAILY JAPANESE</p><h2>학습노트를 불러오고 있어요.</h2><p>오늘의 방송을 잠시 후 만나보세요.</p></div>
+      </main>
+    </div>
+    <footer class="page-footer"><span>EBS 일본어 학습노트</span><span id="updated-at"></span></footer>
+  </div>
+  <section id="player" class="player" aria-label="방송 재생" hidden>
+    <div class="player-inner">
+      <div class="player-label"><span class="on-air-dot" aria-hidden="true"></span><div><strong id="player-title"></strong><span id="player-subtitle">방송 녹음</span></div></div>
+      <audio id="audio" controls preload="metadata" playsinline></audio>
+      <div class="player-actions"><button type="button" id="rewind" aria-label="10초 뒤로">−10초</button><label class="speed"><span class="sr-only">재생 속도</span><select id="speed"><option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option><option value="2">2×</option></select></label></div>
+    </div>
+  </section>
+  <p id="notice" class="notice" role="status" hidden></p>
+</body>
+</html>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.ebs.radio.ollama</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Applications/Ollama.app/Contents/Resources/ollama</string>
+    <string>serve</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>OLLAMA_HOST</key><string>127.0.0.1:11435</string>
+    <key>OLLAMA_MODELS</key><string>/path/to/ebs_japan_radio/models/ollama</string>
+    <key>OLLAMA_NO_CLOUD</key><string>1</string>
+    <key>OLLAMA_MAX_LOADED_MODELS</key><string>1</string>
+    <key>OLLAMA_NUM_PARALLEL</key><string>1</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>KeepAlive</key><true/>
+  <key>ThrottleInterval</key><integer>10</integer>
+  <key>StandardOutPath</key><string>/Users/YOUR_USER/Library/Logs/ebs_japan_radio.ollama.log</string>
+  <key>StandardErrorPath</key><string>/Users/YOUR_USER/Library/Logs/ebs_japan_radio.ollama.log</string>
+</dict>
+</plist>

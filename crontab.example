@@ -1,0 +1,1 @@
+0 5 * * 1-6 /bin/sh /volume1/music/radio/EBS/ebs_japan_radio/scripts/record_ebs_japanese.sh

@@ -1,0 +1,47 @@
+{
+  "conclusion_ko": "현재 일본어 학습 자료 자동 분석은 Qwen3.5-27B를 유지하는 것을 추천합니다. 이번 동일 입력의 시험에서 Qwen3.6-27B의 번역 품질이나 생성 속도 개선을 확인하지 못했습니다.",
+  "scope_ko": "각 모델 1회, 동일 12문장과 동일 방송 전사, 비추론 모드, Q4_K_M, 16K 문맥, 동일 샘플링 설정과 시드. 다운로드 종료 후 순차 실행. 번역 원출력에 수동 수정 없음.",
+  "review_method": "Assistant review against the Japanese source and references written before the trial; one fixed-seed sample per model. This is a small project-specific pilot, not a standardized benchmark or independent human evaluation.",
+  "baseline_reproduction": "All 12 Qwen3.5 fixed-seed diagnostic outputs reproduced the earlier trial exactly; its previous source review is reused against the identical output.",
+  "production_model": "qwen3.5:27b",
+  "examples_ko": {
+    "qwen3.6_improvement": "とか 문장을 실제로 손으로 쓰면 그쪽이 더 기억에 남는다거나로 옮겨 미완성 나열을 유지했습니다. 3.5는 점도 있습니다로 완결했습니다.",
+    "qwen3.6_remaining_errors": "최종 요약에 일기 계隈이라는 한글·한자 혼용, 주제에 카이와, 価値観 문장에 계와이라는 잘못된 표기가 남았습니다. 진단 문장에는 고의적으로, 낯가림하다, 고양이 편 같은 어색한 표현이 있었습니다.",
+    "qwen3.5_remaining_errors": "3.5도 고의로, 낯가림하다 같은 표현과 요약의 불명확한 문화명 일기계가 남았습니다."
+  },
+  "limits_ko": "12문항의 단일 시드 시험과 AI 원문 검토 결과로 일반적인 모델 우열이나 통계적으로 유의한 차이를 뜻하지 않습니다. 전체 생성 시간에는 선택한 어휘 수와 출력 길이가 영향을 줍니다. 두 모델 모두 실제 음성 대비 정확도를 평가한 것이 아니며 기존 전사의 반복 오류는 별도 개선 과제입니다.",
+  "models": {
+    "qwen3.5-27b": {
+      "model": "qwen3.5:27b",
+      "diagnostic_review_points_out_of_72": 66,
+      "diagnostic_seconds": 154.76,
+      "diagnostic_tokens_per_second": 4.63,
+      "warmup_seconds": 26.15,
+      "draft_seconds": 336.69,
+      "proofreading_seconds": 182.95,
+      "study_seconds": 519.64,
+      "study_generated_tokens": 1882,
+      "study_tokens_per_second": 4.53,
+      "final_vocabulary_count": 8,
+      "ollama_reported_model_memory_gb": 17.36,
+      "source_validation": "passed"
+    },
+    "qwen3.6-27b": {
+      "model": "qwen3.6:27b",
+      "diagnostic_review_points_out_of_72": 63,
+      "diagnostic_seconds": 153.92,
+      "diagnostic_tokens_per_second": 4.43,
+      "warmup_seconds": 31.53,
+      "draft_seconds": 397.86,
+      "proofreading_seconds": 209.15,
+      "study_seconds": 607.01,
+      "study_generated_tokens": 2302,
+      "study_tokens_per_second": 4.68,
+      "final_vocabulary_count": 10,
+      "ollama_reported_model_memory_gb": 17.29,
+      "source_validation": "passed"
+    }
+  },
+  "timing_limits": "Models run sequentially after the download completes. Loading is recorded separately. Output length and selected vocabulary can differ. Native Ollama model parameters include draft_num_predict=3 for Qwen3.6 (MTP), but no such parameter for Qwen3.5. Speed measures practical package behavior, not a pure architecture-only comparison.",
+  "input_limits": "The existing Whisper transcript contains substantial repeated segments and some recognition errors. Identical input is kept for comparability; this limits full-guide coverage and does not assess audio transcription accuracy."
+}
