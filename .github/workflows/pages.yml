@@ -1,0 +1,41 @@
+name: Publish study site
+run-name: 'Publish study site: ${{ inputs.asset }}'
+on:
+  workflow_dispatch:
+    inputs:
+      asset:
+        description: Uploaded study-site archive in the study-data release
+        required: true
+        type: string
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download study library
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ASSET_NAME: ${{ inputs.asset }}
+        run: |
+          gh release download study-data --pattern "$ASSET_NAME"
+          mkdir public
+          tar -xzf "$ASSET_NAME" -C public
+          test -f public/index.html
+          test -f public/data.json
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: public
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
