@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 import sys
 import os
+import plistlib
 import subprocess
 import tarfile
 import tempfile
@@ -91,6 +92,44 @@ class PagesExportTests(unittest.TestCase):
                 deployment.deploy(workspace, workspace / "analysis_output",
                                   {"repository": "owner/study", "max_episodes": 2})
             self.assertFalse(any("DELETE" in arguments for arguments in calls))
+
+
+class GitHubSessionTests(unittest.TestCase):
+    def execute_job(self, code=0):
+        calls = []
+        def execute(arguments, **kwargs):
+            calls.append(arguments)
+            if arguments[1] == "bootstrap":
+                config = plistlib.loads(Path(arguments[3]).read_bytes())
+                self.assertEqual(config["ProgramArguments"], ["/fake/gh", "release", "upload", "study-data", "a file $(literal).tar.gz"])
+                self.assertNotIn("GH_TOKEN", config["EnvironmentVariables"])
+                Path(config["StandardOutPath"]).write_text("command output\n")
+                Path(config["StandardErrorPath"]).write_text("command error\n" if code else "")
+            elif arguments[1] == "print":
+                return subprocess.CompletedProcess(arguments, 0, stdout=f"state = not running\nlast exit code = {code}\n", stderr="")
+            return subprocess.CompletedProcess(arguments, 0, stdout="", stderr="")
+        return calls, execute
+
+    def test_user_session_preserves_arguments_and_removes_temporary_job(self):
+        calls, execute = self.execute_job()
+        with patch.object(deployment.subprocess, "run", side_effect=execute):
+            output = deployment.run_in_gui_session("/fake/gh", ["release", "upload", "study-data", "a file $(literal).tar.gz"])
+        self.assertEqual(output, "command output\n")
+        self.assertEqual(calls[-1][1], "bootout")
+        self.assertFalse(Path(calls[0][3]).exists())
+
+    def test_failed_user_session_command_is_reported_and_job_removed(self):
+        calls, execute = self.execute_job(1)
+        with patch.object(deployment.subprocess, "run", side_effect=execute), self.assertRaises(subprocess.CalledProcessError) as raised:
+            deployment.run_in_gui_session("/fake/gh", ["release", "upload", "study-data", "a file $(literal).tar.gz"])
+        self.assertEqual(raised.exception.stderr, "command error\n")
+        self.assertEqual(calls[-1][1], "bootout")
+
+    def test_timed_out_user_session_job_is_stopped(self):
+        calls, execute = self.execute_job()
+        with patch.object(deployment.subprocess, "run", side_effect=execute), patch.object(deployment.time, "monotonic", side_effect=[0, 1]), self.assertRaises(subprocess.TimeoutExpired):
+            deployment.run_in_gui_session("/fake/gh", ["release", "upload", "study-data", "a file $(literal).tar.gz"], timeout=0)
+        self.assertEqual(calls[-1][1], "bootout")
 
 
 if __name__ == "__main__":

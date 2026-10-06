@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 import json
 import os
 from pathlib import Path
+import plistlib
 import re
 import shutil
 import subprocess
@@ -19,7 +20,50 @@ import uuid
 import export_study_pages as pages
 
 
+def run_in_gui_session(gh: str, arguments: list[str], timeout: int = 1800) -> str:
+    """Use the logged-in user's existing keychain through a temporary LaunchAgent."""
+    launchctl = shutil.which("launchctl") or "/bin/launchctl"
+    domain = f"gui/{os.getuid()}"
+    label = "com.ebs.radio.github." + uuid.uuid4().hex
+    target = f"{domain}/{label}"
+    with tempfile.TemporaryDirectory(prefix="ebs-github-session-") as directory:
+        root = Path(directory)
+        output, errors, plist = root / "stdout", root / "stderr", root / "job.plist"
+        plist.write_bytes(plistlib.dumps({
+            "Label": label, "ProgramArguments": [gh, *arguments], "RunAtLoad": True,
+            "ProcessType": "Background", "StandardOutPath": str(output),
+            "StandardErrorPath": str(errors),
+            "EnvironmentVariables": {"HOME": str(Path.home()),
+                "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"},
+        }))
+        loaded = False
+        try:
+            subprocess.run([launchctl, "bootstrap", domain, str(plist)], check=True,
+                           text=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+            loaded = True
+            deadline = time.monotonic() + timeout
+            while time.monotonic() < deadline:
+                state = subprocess.run([launchctl, "print", target], check=True, text=True,
+                                       stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30).stdout
+                exit_code = re.search(r"^\s*last exit code = (\d+)\s*$", state, re.MULTILINE)
+                if exit_code and re.search(r"^\s*state = (?:not running|exited)\s*$", state, re.MULTILINE):
+                    stdout = output.read_text() if output.is_file() else ""
+                    stderr = errors.read_text() if errors.is_file() else ""
+                    code = int(exit_code.group(1))
+                    if code:
+                        raise subprocess.CalledProcessError(code, [gh, *arguments], output=stdout, stderr=stderr)
+                    return stdout
+                time.sleep(1)
+            raise subprocess.TimeoutExpired([gh, *arguments], timeout)
+        finally:
+            if loaded:
+                subprocess.run([launchctl, "bootout", target], text=True,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+
+
 def run(gh: str, arguments: list[str], timeout: int = 1800) -> str:
+    if os.environ.get("EBS_GITHUB_SESSION") == "gui":
+        return run_in_gui_session(gh, arguments, timeout)
     result = subprocess.run([gh, *arguments], check=True, text=True,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=timeout)
     return result.stdout

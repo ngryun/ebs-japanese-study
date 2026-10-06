@@ -91,6 +91,15 @@ GitHub Actions로 설정하면 초기 정적 템플릿은 main 브랜치 푸시 
 
 ### 현재 GitHub Pages와 자동 갱신
 
+macOS의 실제 예약 실행에서도 배포가 동작하도록 `cron`에 전체 디스크 접근 권한을
+허용했습니다. 녹음·전사는 외장 디스크를 사용합니다. GitHub CLI는
+`EBS_GITHUB_SESSION=gui` 설정으로 로그인한 사용자의 기존 키체인 인증을 이용합니다.
+각 CLI 명령은 임시 LaunchAgent로 실행하고 끝나면 제거하며, 인증 토큰을 별도 파일에
+복사하지 않습니다. 사용자는 맥에 로그인한 상태여야 합니다.
+
+2026-10-06에 실제 cron에서 녹음 파일·Whisper 모델 읽기, 녹음·전사 폴더 쓰기,
+기존 GitHub 계정 인증을 확인했습니다. 코드 테스트 22개도 통과했습니다.
+
 - 학습 화면: https://ngryun.github.io/ebs-japanese-study/
 - 배포 저장소: https://github.com/ngryun/ebs-japanese-study
 - 로컬 설정: `study_pages.json` (`enabled`, `repository`, `max_episodes`)
