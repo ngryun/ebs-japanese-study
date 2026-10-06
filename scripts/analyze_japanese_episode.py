@@ -143,13 +143,46 @@ def ensure_ollama_server(chat_url: str) -> None:
     raise RuntimeError("Ollama server did not become ready within 90 seconds")
 
 
-def run(command: list[str], description: str) -> None:
+def needs_login_session() -> bool:
+    """Whether Metal work must be moved into the logged-in user's session.
+
+    Under cron, which runs outside that session, Whisper stalls on the GPU while
+    the display sleeps. EBS_WHISPER_SESSION=gui|direct overrides the check.
+    """
+    mode = os.environ.get("EBS_WHISPER_SESSION", "auto")
+    if mode in ("gui", "direct"):
+        return mode == "gui"
+    try:
+        manager = subprocess.run(["/bin/launchctl", "managername"], capture_output=True,
+                                 text=True, timeout=10).stdout.strip()
+        if manager == "Aqua":
+            return False
+        # Without a login session there is nowhere to move the job.
+        return subprocess.run(["/bin/launchctl", "print", f"gui/{os.getuid()}"],
+                              capture_output=True, timeout=10).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
+def run(command: list[str], description: str, login_session: bool = False) -> None:
     print(f"{description}...", flush=True)
     started_at = time.monotonic()
-    result = subprocess.run(command, capture_output=True, text=True)
-    if result.returncode != 0:
-        detail = (result.stderr or result.stdout).strip()
-        raise RuntimeError(f"{description} failed:\n{detail}")
+    if login_session:
+        from deploy_study_pages import run_in_gui_session
+
+        try:
+            run_in_gui_session(command[0], command[1:], timeout=3600,
+                               name="whisper", process_type="Standard")
+        except subprocess.CalledProcessError as error:
+            detail = (error.stderr or error.output or "").strip()
+            raise RuntimeError(f"{description} failed:\n{detail}") from error
+        except subprocess.TimeoutExpired as error:
+            raise RuntimeError(f"{description} timed out after {error.timeout}s") from error
+    else:
+        result = subprocess.run(command, capture_output=True, text=True)
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout).strip()
+            raise RuntimeError(f"{description} failed:\n{detail}")
     elapsed = time.monotonic() - started_at
     print(f"{description} complete ({elapsed:.1f}s)", flush=True)
 
@@ -655,6 +688,7 @@ def analyze(args: argparse.Namespace) -> None:
                     "-np",
                 ],
                 "Transcribing Japanese audio",
+                login_session=needs_login_session(),
             )
     else:
         print(f"Reusing transcript: {transcript_srt}", flush=True)

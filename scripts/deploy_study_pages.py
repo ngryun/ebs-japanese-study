@@ -20,18 +20,23 @@ import uuid
 import export_study_pages as pages
 
 
-def run_in_gui_session(gh: str, arguments: list[str], timeout: int = 1800) -> str:
-    """Use the logged-in user's existing keychain through a temporary LaunchAgent."""
+def run_in_gui_session(gh: str, arguments: list[str], timeout: int = 1800,
+                       name: str = "github", process_type: str = "Background") -> str:
+    """Run a command in the logged-in user's session through a temporary LaunchAgent.
+
+    GitHub CLI needs the user's keychain there; Whisper needs it so Metal keeps
+    running while the display sleeps, which it does not do under cron.
+    """
     launchctl = shutil.which("launchctl") or "/bin/launchctl"
     domain = f"gui/{os.getuid()}"
-    label = "com.ebs.radio.github." + uuid.uuid4().hex
+    label = f"com.ebs.radio.{name}." + uuid.uuid4().hex
     target = f"{domain}/{label}"
-    with tempfile.TemporaryDirectory(prefix="ebs-github-session-") as directory:
+    with tempfile.TemporaryDirectory(prefix=f"ebs-{name}-session-") as directory:
         root = Path(directory)
         output, errors, plist = root / "stdout", root / "stderr", root / "job.plist"
         plist.write_bytes(plistlib.dumps({
             "Label": label, "ProgramArguments": [gh, *arguments], "RunAtLoad": True,
-            "ProcessType": "Background", "StandardOutPath": str(output),
+            "ProcessType": process_type, "StandardOutPath": str(output),
             "StandardErrorPath": str(errors),
             "EnvironmentVariables": {"HOME": str(Path.home()),
                 "PATH": "/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin"},

@@ -100,6 +100,14 @@ macOS의 실제 예약 실행에서도 배포가 동작하도록 `cron`에 전�
 2026-10-06에 실제 cron에서 녹음 파일·Whisper 모델 읽기, 녹음·전사 폴더 쓰기,
 기존 GitHub 계정 인증을 확인했습니다. 코드 테스트 22개도 통과했습니다.
 
+2026-10-07 첫 예약 실행에서 Whisper 전사가 평소 약 4분 대신 89분 걸렸습니다.
+cron은 로그인 세션 밖에서 실행되므로 모니터가 꺼져 있는 동안 Whisper의 GPU(Metal)
+작업이 멈췄고, 모니터가 켜진 직후 재개됐습니다. 같은 조건에서 로그인 세션의
+LaunchAgent로 실행하면 모니터가 꺼져 있어도 정상 속도였습니다. 그래서 cron에서
+실행될 때는 Whisper만 임시 LaunchAgent(`ProcessType` Standard)로 옮겨 실행합니다.
+터미널에서 직접 실행할 때는 기존처럼 바로 실행하며, `EBS_WHISPER_SESSION=gui` 또는
+`direct`로 강제할 수 있습니다. Ollama는 이미 LaunchAgent라 영향이 없습니다.
+
 - 학습 화면: https://ngryun.github.io/ebs-japanese-study/
 - 배포 저장소: https://github.com/ngryun/ebs-japanese-study
 - 로컬 설정: `study_pages.json` (`enabled`, `repository`, `max_episodes`)
