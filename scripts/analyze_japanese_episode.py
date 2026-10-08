@@ -179,7 +179,10 @@ def run(command: list[str], description: str, login_session: bool = False) -> No
         except subprocess.TimeoutExpired as error:
             raise RuntimeError(f"{description} timed out after {error.timeout}s") from error
     else:
-        result = subprocess.run(command, capture_output=True, text=True)
+        # Whisper can split a multibyte character across segments, so its
+        # output is not always valid UTF-8.
+        result = subprocess.run(command, capture_output=True, text=True,
+                                encoding="utf-8", errors="replace")
         if result.returncode != 0:
             detail = (result.stderr or result.stdout).strip()
             raise RuntimeError(f"{description} failed:\n{detail}")
@@ -194,8 +197,17 @@ def write_text_atomic(path: Path, value: str) -> None:
         os.replace(temporary, path)
 
 
+def repair_utf8(path: Path) -> None:
+    """Drop the partial characters Whisper leaves where it splits a segment."""
+    data = path.read_bytes()
+    text = data.decode("utf-8", errors="ignore")
+    if text.encode("utf-8") != data:
+        write_text_atomic(path, text)
+
+
 def parse_srt(path: Path) -> str:
-    blocks = re.split(r"\n\s*\n", path.read_text(encoding="utf-8").strip())
+    # Transcripts written before repair_utf8 may still hold partial characters.
+    blocks = re.split(r"\n\s*\n", path.read_text(encoding="utf-8", errors="ignore").strip())
     transcript: list[str] = []
     for block in blocks:
         lines = [line.strip() for line in block.splitlines() if line.strip()]
@@ -696,6 +708,10 @@ def analyze(args: argparse.Namespace) -> None:
                 "Transcribing Japanese audio",
                 login_session=needs_login_session(),
             )
+            for suffix in (".srt", ".txt", ".json"):
+                output = Path(f"{transcript_base}{suffix}")
+                if output.is_file():
+                    repair_utf8(output)
     else:
         print(f"Reusing transcript: {transcript_srt}", flush=True)
 

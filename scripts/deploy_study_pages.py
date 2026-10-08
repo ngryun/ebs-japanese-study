@@ -52,8 +52,8 @@ def run_in_gui_session(gh: str, arguments: list[str], timeout: int = 1800,
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30).stdout
                 exit_code = re.search(r"^\s*last exit code = (\d+)\s*$", state, re.MULTILINE)
                 if exit_code and re.search(r"^\s*state = (?:not running|exited)\s*$", state, re.MULTILINE):
-                    stdout = output.read_text() if output.is_file() else ""
-                    stderr = errors.read_text() if errors.is_file() else ""
+                    stdout = output.read_text(encoding="utf-8", errors="replace") if output.is_file() else ""
+                    stderr = errors.read_text(encoding="utf-8", errors="replace") if errors.is_file() else ""
                     code = int(exit_code.group(1))
                     if code:
                         raise subprocess.CalledProcessError(code, [gh, *arguments], output=stdout, stderr=stderr)

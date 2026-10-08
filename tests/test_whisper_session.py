@@ -2,6 +2,7 @@ from pathlib import Path
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -55,6 +56,28 @@ class WhisperSessionTests(unittest.TestCase):
         with patch.object(deployment, "run_in_gui_session", side_effect=failure), \
                 self.assertRaisesRegex(RuntimeError, "Transcribing failed:\nmodel missing"):
             analysis.run(["/fake/whisper-cli"], "Transcribing", login_session=True)
+
+
+class SplitCharacterTests(unittest.TestCase):
+    # Whisper cut "한" (ED 95 9C) after two bytes at a segment boundary.
+    BROKEN = "1\n00:00:01,000 --> 00:00:02,000\n日本語".encode("utf-8") + b"\xed\x95\n"
+
+    def test_command_with_broken_output_reports_failure_not_decode_error(self):
+        with self.assertRaisesRegex(RuntimeError, "Transcribing failed"):
+            analysis.run(["/bin/sh", "-c", "printf '\\355\\225\\n'; exit 1"], "Transcribing")
+
+    def test_repair_drops_partial_characters_only(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "a.transcript.srt"
+            path.write_bytes(self.BROKEN)
+            analysis.repair_utf8(path)
+            self.assertEqual(path.read_text(encoding="utf-8"), "1\n00:00:01,000 --> 00:00:02,000\n日本語\n")
+
+    def test_old_transcript_with_partial_characters_is_readable(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "a.transcript.srt"
+            path.write_bytes(self.BROKEN)
+            self.assertIn("日本語", analysis.parse_srt(path))
 
 
 if __name__ == "__main__":
