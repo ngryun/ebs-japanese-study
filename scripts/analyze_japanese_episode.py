@@ -680,6 +680,12 @@ def analyze(args: argparse.Namespace) -> None:
                     "ja",
                     "-t",
                     "8",
+                    # Do not feed earlier text back as context. With it, Korean
+                    # commentary under forced Japanese sent Whisper into loops
+                    # that repeated one sentence for the rest of the episode
+                    # (2026-10-07: 240 of 373 lines from 09:04 onward).
+                    "-mc",
+                    "0",
                     "-oj",
                     "-osrt",
                     "-otxt",

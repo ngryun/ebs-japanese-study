@@ -108,6 +108,15 @@ LaunchAgent로 실행하면 모니터가 꺼져 있어도 정상 속도였습니
 터미널에서 직접 실행할 때는 기존처럼 바로 실행하며, `EBS_WHISPER_SESSION=gui` 또는
 `direct`로 강제할 수 있습니다. Ollama는 이미 LaunchAgent라 영향이 없습니다.
 
+2026-10-08에는 두 가지를 더 고쳤습니다.
+
+- 녹음 ffmpeg가 멈춘 HLS 요청에서 05:20부터 07:44까지 기다렸습니다. 입출력 시간
+  제한이 없으면 종료 신호로도 끝나지 않습니다. 이제 `-rw_timeout` 30초를 넘기면
+  해당 조각만 건너뛰고 녹음을 이어 갑니다.
+- 일본어 고정 전사에서 한국어 해설이 나오면 Whisper가 한 문장을 방송 끝까지
+  반복했습니다(10/07은 09:04부터 373줄 중 240줄). 이전 문장을 문맥으로 넘기지 않는
+  `-mc 0`을 적용해 같은 방송이 20분 전체 전사되는 것을 확인했습니다.
+
 - 학습 화면: https://ngryun.github.io/ebs-japanese-study/
 - 배포 저장소: https://github.com/ngryun/ebs-japanese-study
 - 로컬 설정: `study_pages.json` (`enabled`, `repository`, `max_episodes`)

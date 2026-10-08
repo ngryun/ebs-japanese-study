@@ -154,11 +154,15 @@ cleanup_recording() {
 trap cleanup_recording 0
 trap 'exit 130' 1 2 15
 
+# Without an IO timeout a stalled HLS request blocks ffmpeg until the TCP
+# keepalive gives up (2026-10-08: 05:20 → 07:44), and SIGTERM cannot end it.
+# With one, ffmpeg skips the stalled segment and keeps recording.
 "$FFMPEG_BIN" \
   -nostdin \
   -hide_banner \
   -loglevel error \
   -re \
+  -rw_timeout 30000000 \
   -i "$STREAM_URL" \
   -vn \
   -acodec copy \
