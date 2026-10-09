@@ -135,22 +135,44 @@ def deploy(workspace: Path, analysis_dir: Path, config: dict) -> None:
         print(f"Published: https://{owner}.github.io/{repository}/", flush=True)
 
 
+# Waits before the second and third attempts. A network or GitHub hiccup must
+# not leave the site a day behind; each attempt uploads a fresh bundle and the
+# successful one removes the bundles left by failed attempts.
+RETRY_DELAYS = (60, 300)
+
+
+def load_config(workspace: Path, config_path: Path | None = None) -> dict | None:
+    """Return the Pages settings, or None when publishing is not enabled."""
+    path = config_path or Path(os.environ.get("STUDY_PAGES_CONFIG", str(workspace / "study_pages.json")))
+    if not path.is_file():
+        return None
+    config = json.loads(path.read_text(encoding="utf-8"))
+    return config if config.get("enabled", False) else None
+
+
+def deploy_with_retry(workspace: Path, analysis_dir: Path, config: dict) -> None:
+    for attempt, delay in enumerate((*RETRY_DELAYS, None), start=1):
+        try:
+            deploy(workspace, analysis_dir, config)
+            return
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, RuntimeError) as error:
+            detail = (getattr(error, "stderr", None) or str(error)).strip()
+            if delay is None:
+                raise SystemExit(f"GitHub Pages update failed after {attempt} attempts: {detail}")
+            print(f"GitHub Pages update failed (attempt {attempt}); retrying in {delay}s: {detail}", flush=True)
+            time.sleep(delay)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace", type=Path, default=pages.study_site.feed.WORKSPACE_DIR)
     parser.add_argument("--analysis-dir", type=Path)
     parser.add_argument("--config", type=Path)
     args = parser.parse_args()
-    config_path = args.config or Path(os.environ.get("STUDY_PAGES_CONFIG", str(args.workspace / "study_pages.json")))
-    if not config_path.is_file():
+    config = load_config(args.workspace, args.config)
+    if config is None:
         return
-    config = json.loads(config_path.read_text(encoding="utf-8"))
-    if not config.get("enabled", False):
-        return
-    try:
-        deploy(args.workspace, args.analysis_dir or args.workspace / "analysis_output", config)
-    except subprocess.CalledProcessError as error:
-        raise SystemExit(f"GitHub Pages update failed: {error.stderr.strip()}")
+    deploy_with_retry(args.workspace, args.analysis_dir or args.workspace / "analysis_output", config)
 
 
 if __name__ == "__main__":

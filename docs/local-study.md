@@ -145,6 +145,32 @@ LaunchAgent로 실행하면 모니터가 꺼져 있어도 정상 속도였습니
 저장하지 않습니다. 자동 업로드를 중단하려면 `study_pages.json`의 `enabled`를
 `false`로 바꿉니다. 이미 공개한 사이트를 삭제하지는 않습니다.
 
+배포가 실패하면 1분, 5분 뒤 두 번 더 시도합니다. 시도마다 새 묶음을 올리고,
+성공한 배포가 실패한 시도의 묶음까지 정리합니다.
+
+#### 07:30 점검과 아이폰 알림
+
+월~토 07:30에 cron이 `check_study_pages.py`를 실행합니다. 05:00 작업이 아직
+돌고 있으면 최대 45분 기다린 뒤, 오늘 녹음과 학습노트가 공개 사이트의
+`data.json`에 있는지 확인합니다. 사이트만 뒤처져 있으면 다시 배포합니다.
+외장 디스크가 빠져 있어도 알릴 수 있도록 내장 디스크의 Command Line Tools
+파이썬으로 실행합니다.
+
+해결하지 못한 문제가 남을 때만 `~/Applications/EBSStudyAlert.app`이 미리 알림의
+`EBS 일본어 알림` 목록에 항목을 만들고, iCloud를 거쳐 1분 뒤 아이폰에 알림이
+뜹니다. 정상인 날에는 알림이 없습니다. 결과는
+`~/Library/Logs/ebs_japan_radio.check.log`, 보조 앱 상태는 런타임 폴더의
+`alert_status.txt`에서 확인합니다.
+
+보조 앱은 `scripts/build_alert_helper.sh`로 다시 만들 수 있습니다. 다시 만들면
+서명이 바뀌므로 첫 알림 때 맥에서 '미리 알림' 제어를 다시 허용해야 합니다.
+알림 경로만 시험하려면 다음을 실행합니다.
+
+```sh
+/Library/Developer/CommandLineTools/usr/bin/python3 \
+  "$HOME/Library/Application Support/EBSPrivatePodcast/study_alert.py"
+```
+
 변경 없는 오디오는 다시 복사하지 않습니다. 소스 폴더가 없거나 새 파일 복사에
 실패하면 기존 목록을 유지하며, 이전에 공개한 오디오를 자동 삭제하지 않습니다.
 메타데이터 처리나 최종 저장에 실패한 녹음 원본은 내부 임시 폴더에 보존하고
