@@ -102,7 +102,45 @@ def executable(name: str, fallback: str | None = None) -> str:
     raise SystemExit(f"Required executable not found: {name}")
 
 
+def ollama_error(error: urllib.error.URLError) -> str:
+    """Include the reason Ollama gives in its error body, not just the status."""
+    if isinstance(error, urllib.error.HTTPError):
+        try:
+            return f"{error} ({json.loads(error.read())['error']})"
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+    return str(error)
+
+
+def restart_replaced_ollama(service: str) -> None:
+    """Restart the dedicated Ollama server if an app update replaced its binary.
+
+    The old process keeps running, but macOS then refuses it the external disk
+    ("operation not permitted"), so every request fails (2026-10-10).
+    """
+    target = f"gui/{os.getuid()}/{service}"
+    try:
+        state = subprocess.run(["/bin/launchctl", "print", target], capture_output=True,
+                               text=True, timeout=10).stdout
+        pid = re.search(r"^\s*pid = (\d+)\s*$", state, re.MULTILINE)
+        program = re.search(r"^\s*program = (.+?)\s*$", state, re.MULTILINE)
+        if not pid or not program:
+            return
+        started = subprocess.run(["/bin/ps", "-o", "lstart=", "-p", pid.group(1)], capture_output=True,
+                                 text=True, timeout=10, env={"LC_ALL": "C"}).stdout
+        started_at = datetime.strptime(" ".join(started.split()), "%a %b %d %H:%M:%S %Y")
+        if Path(program.group(1)).stat().st_mtime <= started_at.timestamp():
+            return
+        print(f"Ollama was updated after {service} started; restarting it...", flush=True)
+        subprocess.run(["/bin/launchctl", "kickstart", "-k", target], check=True,
+                       capture_output=True, text=True, timeout=30)
+    except (OSError, ValueError, subprocess.SubprocessError) as error:
+        print(f"Warning: could not check {service} for an Ollama update: {error}", flush=True)
+
+
 def ensure_ollama_server(chat_url: str) -> None:
+    if OLLAMA_LAUNCHD_SERVICE:
+        restart_replaced_ollama(OLLAMA_LAUNCHD_SERVICE)
     parsed = urllib.parse.urlsplit(chat_url)
     health_url = urllib.parse.urlunsplit(
         (parsed.scheme, parsed.netloc, "/api/tags", "", "")
@@ -282,7 +320,7 @@ def request_study_guide(
         with urllib.request.urlopen(request, timeout=1200) as response:
             response_data = json.load(response)
     except urllib.error.URLError as error:
-        raise RuntimeError(f"Ollama request failed: {error}") from error
+        raise RuntimeError(f"Ollama request failed: {ollama_error(error)}") from error
 
     content = response_data["message"]["content"]
     study_guide = json.loads(content)
@@ -355,7 +393,7 @@ def proofread_study_guide(
         with urllib.request.urlopen(request, timeout=1200) as response:
             response_data = json.load(response)
     except urllib.error.URLError as error:
-        raise RuntimeError(f"Ollama proofreading request failed: {error}") from error
+        raise RuntimeError(f"Ollama proofreading request failed: {ollama_error(error)}") from error
     corrected = json.loads(response_data["message"]["content"])
     elapsed = time.monotonic() - started_at
     print(f"Vocabulary proofreading complete ({elapsed:.1f}s)", flush=True)

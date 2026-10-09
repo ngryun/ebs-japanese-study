@@ -117,6 +117,13 @@ LaunchAgent로 실행하면 모니터가 꺼져 있어도 정상 속도였습니
   반복했습니다(10/07은 09:04부터 373줄 중 240줄). 이전 문장을 문맥으로 넘기지 않는
   `-mc 0`을 적용해 같은 방송이 20분 전체 전사되는 것을 확인했습니다.
 
+2026-10-10에는 07:30 점검이 "학습노트가 만들어지지 않았습니다"를 알렸습니다.
+전날 21:34 Ollama 앱이 자동 업데이트됐는데 `com.ebs.radio.ollama` 서버는 10/03부터
+옛 실행 파일로 계속 돌고 있었고, macOS가 이 프로세스의 외장 디스크 접근을 막아
+모든 요청이 HTTP 500(`operation not permitted`)으로 실패했습니다. 이제 분석을
+시작할 때 서버가 실행 파일보다 먼저 시작됐으면 `launchctl kickstart -k`로 다시
+띄우고, Ollama 오류는 응답 본문의 원인까지 로그에 남깁니다.
+
 - 학습 화면: https://ngryun.github.io/ebs-japanese-study/
 - 배포 저장소: https://github.com/ngryun/ebs-japanese-study
 - 로컬 설정: `study_pages.json` (`enabled`, `repository`, `max_episodes`)
