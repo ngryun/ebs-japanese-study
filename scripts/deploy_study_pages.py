@@ -15,17 +15,21 @@ import subprocess
 import tarfile
 import tempfile
 import time
+from typing import Callable
 import uuid
 
 import export_study_pages as pages
 
 
 def run_in_gui_session(gh: str, arguments: list[str], timeout: int = 1800,
-                       name: str = "github", process_type: str = "Background") -> str:
+                       name: str = "github", process_type: str = "Background",
+                       finished: Callable[[], bool] | None = None) -> str:
     """Run a command in the logged-in user's session through a temporary LaunchAgent.
 
     GitHub CLI needs the user's keychain there; Whisper needs it so Metal keeps
     running while the display sleeps, which it does not do under cron.
+    When ``finished`` reports the work done, the job is stopped without waiting
+    for it to exit (headless Chrome writes its PDF and then never quits).
     """
     launchctl = shutil.which("launchctl") or "/bin/launchctl"
     domain = f"gui/{os.getuid()}"
@@ -48,6 +52,8 @@ def run_in_gui_session(gh: str, arguments: list[str], timeout: int = 1800,
             loaded = True
             deadline = time.monotonic() + timeout
             while time.monotonic() < deadline:
+                if finished is not None and finished():
+                    return output.read_text(encoding="utf-8", errors="replace") if output.is_file() else ""
                 state = subprocess.run([launchctl, "print", target], check=True, text=True,
                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30).stdout
                 exit_code = re.search(r"^\s*last exit code = (\d+)\s*$", state, re.MULTILINE)

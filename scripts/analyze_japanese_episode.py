@@ -21,6 +21,7 @@ from datetime import datetime
 from pathlib import Path
 
 from generate_feed import parse_env_file
+import study_worksheet
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
@@ -803,6 +804,14 @@ def analyze(args: argparse.Namespace) -> None:
     print(f"Study JSON: {study_json_path}")
     print(f"Study Markdown: {study_markdown_path}")
     print(f"Apple Notes HTML: {study_notes_html_path}")
+
+    # A worksheet failure must not cost the study notes saved above.
+    worksheet_pdf_path = study_worksheet.worksheet_path(study_json_path)
+    try:
+        study_worksheet.build_pdf(study_json_path, worksheet_pdf_path, login_session=needs_login_session())
+        print(f"Worksheet PDF: {worksheet_pdf_path}", flush=True)
+    except (RuntimeError, OSError, ValueError, subprocess.SubprocessError) as error:
+        print(f"Warning: worksheet PDF could not be created: {error}", file=sys.stderr, flush=True)
 
 
 def restart_in_analysis_venv_if_needed() -> None:

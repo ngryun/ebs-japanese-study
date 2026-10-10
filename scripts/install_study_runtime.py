@@ -15,7 +15,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 FILES = (
     "record_ebs_japanese.sh", "generate_feed.py", "analyze_japanese_episode.py",
     "generate_study_site.py", "podcast_server.py", "start_server.sh",
-    "export_study_pages.py", "deploy_study_pages.py", "check_study_pages.py", "study_alert.py",
+    "export_study_pages.py", "deploy_study_pages.py", "check_study_pages.py", "study_alert.py", "study_worksheet.py",
     "study_web/index.html", "study_web/styles.css", "study_web/app.js", "study_web/icon.svg",
 )
 

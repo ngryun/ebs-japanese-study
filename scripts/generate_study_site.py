@@ -84,14 +84,20 @@ def publish(workspace: Path, output_dir: Path, analysis_dir: Path, max_episodes:
         exported_name = f"{episode_id}.m4a"
         copy_if_changed(recording, audio_dir / exported_name)
         study = read_study(analysis_dir / f"{recording.stem}.study.json")
-        episodes.append({
+        episode = {
             "id": episode_id,
             "date": recorded_at.strftime("%Y-%m-%d"),
             "time": recorded_at.strftime("%H:%M"),
             "course": program["source_dir"],
             "audio_url": f"audio/{quote(exported_name)}",
             "study": study,
-        })
+        }
+        worksheet = analysis_dir / f"{recording.stem}.worksheet.pdf"
+        if study is not None and worksheet.is_file():
+            (output_dir / "worksheets").mkdir(exist_ok=True)
+            copy_if_changed(worksheet, output_dir / "worksheets" / f"{episode_id}.pdf")
+            episode["worksheet_url"] = f"worksheets/{quote(episode_id)}.pdf"
+        episodes.append(episode)
         if len(episodes) >= max_episodes:
             break
     if not episodes:

@@ -264,6 +264,30 @@ python3 /path/to/ebs_japan_radio/scripts/analyze_japanese_episode.py \
 결과는 `analysis_output` 폴더에 저장됩니다. 같은 파일을 다시 실행하면 기존
 전사를 재사용하고 어휘 추출과 검수만 다시 수행합니다.
 
+### 학습지 PDF
+
+학습노트를 저장한 직후 `study_worksheet.py`가 A4 학습지를
+`analysis_output/<녹음>.worksheet.pdf`로 만듭니다. 1부는 요약과 단어·예문, 2부는
+뜻 쓰기, 읽는 법 쓰기(한자가 있는 단어), 방송 문장 빈칸 채우기(최대 8개),
+문장 만들기이며 정답은 1부 단어 목록입니다. 빈칸 힌트의 한국어 해석에 정답
+일본어가 섞여 있으면 ○○로 가립니다.
+
+PDF는 Google Chrome의 headless 인쇄로 만들어 시스템 일본어·한국어 글꼴을
+씁니다. Chrome은 PDF를 쓰고도 종료하지 않으므로 파일 끝의 `%%EOF`를 확인한 뒤
+종료시킵니다. cron에서는 Whisper처럼 로그인 세션에서 실행하며, 임시 프로필과
+`/tmp` 작업 폴더를 써서 사용자의 Chrome 데이터와 외장 디스크 권한에 닿지 않습니다.
+학습지 생성이 실패해도 학습노트와 배포는 그대로 진행됩니다.
+
+학습 화면과 GitHub Pages는 학습지가 있는 회차에 "학습지 PDF 받기" 버튼을
+보여 줍니다(`worksheets/<회차 id>.pdf`, 회당 약 0.6MB). 양식을 바꾼 뒤 기존
+학습지를 다시 만들려면 다음을 실행하고 배포합니다. 학습노트나 양식 파일이
+PDF보다 새로우면 다시 만들고, `--force`는 모두 다시 만듭니다.
+
+```sh
+RADIO_WORKSPACE=/path/to/ebs_japan_radio \
+  /path/to/ebs_japan_radio/.venv-analysis/bin/python3 scripts/study_worksheet.py
+```
+
 ### iCloud 메모 자동 생성
 
 분석이 성공하면 승인된 `~/Applications/EBSStudyNotes.app`이 결과를 iCloud
